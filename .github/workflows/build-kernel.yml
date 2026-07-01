@@ -1,1 +1,52 @@
+name: Build Kernel
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up build environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          bc bison build-essential ccache \
+          flex libssl-dev libelf-dev \
+          clang llvm lld \
+          binutils-aarch64-linux-gnu \
+          gcc-aarch64-linux-gnu \
+          crossbuild-essential-arm64 \
+          libncurses-dev git wget zip
+
+    - name: Build kernel
+      run: |
+        export ARCH=arm64
+        export CROSS_COMPILE=aarch64-linux-gnu-
+        export CC=clang
+        # 注意：把下面的 defconfig 换成你设备对应的配置文件
+        make O=out defconfig
+        make O=out -j$(nproc)
+
+    - name: Package build artifacts
+      run: |
+        mkdir -p kernel_output
+        cp out/arch/arm64/boot/Image kernel_output/ 2>/dev/null || true
+        cp out/arch/arm64/boot/Image.gz kernel_output/ 2>/dev/null || true
+        cp out/arch/arm64/boot/dtbo.img kernel_output/ 2>/dev/null || true
+        find out -name "*.ko" -exec cp {} kernel_output/ \; 2>/dev/null || true
+        zip -r kernel-build.zip kernel_output/
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: kernel-build
+        path: kernel-build.zip
 
