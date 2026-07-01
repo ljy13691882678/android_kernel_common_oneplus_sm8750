@@ -31,7 +31,6 @@ jobs:
         export ARCH=arm64
         export CROSS_COMPILE=aarch64-linux-gnu-
         export CC=clang
-        # 注意：把下面的 defconfig 换成你设备对应的配置文件
         make O=out defconfig
         make O=out -j$(nproc)
 
@@ -49,4 +48,3 @@ jobs:
       with:
         name: kernel-build
         path: kernel-build.zip
-
